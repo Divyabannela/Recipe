@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request
 from dotenv import load_dotenv
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 
@@ -123,3 +123,4 @@ def index():
 if __name__ == "__main__":
     from os import getenv
     app.run(host="0.0.0.0", port=int(getenv("PORT", 5000)))
+

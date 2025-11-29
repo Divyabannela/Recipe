@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Recipe Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>🍽️ AI Recipe Generator</h1>
+
+    <form method="POST">
+
+        <textarea name="ingredients" placeholder="Enter ingredients... example: tomato, rice, onion"></textarea>
+
+        <button type="submit">Generate Recipes</button>
+
+        {% if recipes %}
+        <h2>Suggested Recipes</h2>
+        <div class="box">
+            {{ recipes | safe }}
+        </div>
+
+        <label>Select one recipe name exactly:</label>
+        <input type="text" name="selected_recipe" placeholder="Type recipe name here">
+
+        <button type="submit">Get Full Recipe</button>
+        {% endif %}
+
+        {% if details %}
+        <h2>Recipe Details</h2>
+        <div class="box">
+            {{ details | safe }}
+        </div>
+
+        <h2>Calories</h2>
+        <div class="box">
+            {{ calories }}
+        </div>
+        {% endif %}
+
+    </form>
+</div>
+
+</body>
+</html>

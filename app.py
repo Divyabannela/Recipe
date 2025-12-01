@@ -1,47 +1,54 @@
 import os
 from flask import Flask, render_template, request
+from groq import Groq
 from dotenv import load_dotenv
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
 app = Flask(__name__)
 
-# LLM
-llm = ChatOpenAI(
-    model="gpt-4o-mini",
-    temperature=0.7,
-    api_key=os.getenv("OPENAI_API_KEY")
-)
+# Initialize Groq client
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+# ----------------------------
+# Helper function to call Groq
+# ----------------------------
+def groq_chat(prompt):
+    response = client.chat.completions.create(
+        model="llama3-8b-8192",  # FREE MODEL
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.7,
+        max_tokens=300,
+    )
+    return response.choices[0].message.content
+
 
 # ---------------------------------------------------------
-# 1️⃣ RECIPE SUGGESTION PROMPT
+# 1️⃣ RECIPE SUGGESTION
 # ---------------------------------------------------------
-suggest_prompt = PromptTemplate(
-    input_variables=["ingredients"],
-    template="""
-You are an expert chef. Based on these ingredients:
+def suggest_recipes(ingredients):
+    prompt = f"""
+You are an expert chef. Based on the following ingredients:
 {ingredients}
 
-Suggest EXACTLY 3 possible recipes.
+Suggest exactly 3 possible recipes.
 
-Format:
+Output only in this format:
 1. Recipe name
 2. Recipe name
 3. Recipe name
 """
-)
+    return groq_chat(prompt)
+
 
 # ---------------------------------------------------------
-# 2️⃣ RECIPE DETAILS PROMPT
+# 2️⃣ RECIPE DETAILS
 # ---------------------------------------------------------
-details_prompt = PromptTemplate(
-    input_variables=["recipe_name"],
-    template="""
+def recipe_details(recipe_name):
+    prompt = f"""
 Write a complete recipe for: {recipe_name}
 
-Output exactly in this format:
+Output EXACTLY in this format:
 
 ### Ingredients
 - item1
@@ -50,6 +57,7 @@ Output exactly in this format:
 ### Instructions
 1. step
 2. step
+3. step
 
 ### Cooking Time
 X minutes
@@ -59,19 +67,22 @@ Easy / Medium / Hard
 
 ### END
 """
-)
+    return groq_chat(prompt)
+
 
 # ---------------------------------------------------------
-# 3️⃣ CALORIE ESTIMATOR PROMPT
+# 3️⃣ CALORIE ESTIMATOR
 # ---------------------------------------------------------
-calorie_prompt = PromptTemplate(
-    input_variables=["recipe_name"],
-    template="""
-Estimate the total calories for "{recipe_name}".
-Return only:
-123 calories
+def recipe_calories(recipe_name):
+    prompt = f"""
+Estimate the total calories for the recipe "{recipe_name}".
+Just return one number + the word "calories".
+
+Example:
+350 calories
 """
-)
+    return groq_chat(prompt)
+
 
 # ---------------------------------------------------------
 # FLASK ROUTES
@@ -86,20 +97,14 @@ def index():
         ingredients = request.form.get("ingredients")
         selected_recipe = request.form.get("selected_recipe")
 
-        # If user selected recipe → generate details + calories
         if selected_recipe:
-            final_prompt = details_prompt.format(recipe_name=selected_recipe)
-            details = llm.invoke(final_prompt).content
-
-            calorie_prompt_text = calorie_prompt.format(recipe_name=selected_recipe)
-            calories = llm.invoke(calorie_prompt_text).content
-
-        # If user first entered ingredients → show recipe suggestions
+            details = recipe_details(selected_recipe)
+            calories = recipe_calories(selected_recipe)
         else:
-            suggest_prompt_text = suggest_prompt.format(ingredients=ingredients)
-            recipes = llm.invoke(suggest_prompt_text).content
+            recipes = suggest_recipes(ingredients)
 
     return render_template("index.html", recipes=recipes, details=details, calories=calories)
+
 
 # ---------------------------------------------------------
 # Run on Render
